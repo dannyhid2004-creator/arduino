@@ -1,1 +1,72 @@
 index.html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Live Word Listener</title>
+  <style>
+    body { font-family: Arial; padding: 20px; }
+    button { font-size: 18px; padding: 12px; }
+    .alert { color: red; font-weight: bold; font-size: 22px; }
+  </style>
+</head>
+<body>
+
+<h2>🎙️ Live Word Listener</h2>
+
+<p>Listening for: <strong id="words"></strong></p>
+
+<button onclick="startListening()">Start Listening</button>
+
+<p id="status"></p>
+<p id="output"></p>
+<p id="alert" class="alert"></p>
+
+<audio id="beep">
+  <source src="https://actions.google.com/sounds/v1/alarms/beep_short.ogg">
+</audio>
+
+<script>
+  const triggerWords = ["schedule", "penalty", "touchdown"]; // EDIT WORDS
+  document.getElementById("words").innerText = triggerWords.join(", ");
+
+  const SpeechRecognition =
+    window.SpeechRecognition || window.webkitSpeechRecognition;
+
+  const recognition = new SpeechRecognition();
+  recognition.continuous = true;
+  recognition.interimResults = true;
+  recognition.lang = "en-US";
+
+  recognition.onstart = () => {
+    document.getElementById("status").innerText = "Listening...";
+  };
+
+  recognition.onresult = (event) => {
+    const result = event.results[event.results.length - 1];
+    const transcript = result[0].transcript.toLowerCase();
+
+    document.getElementById("output").innerText = transcript;
+
+    triggerWords.forEach(word => {
+      if (transcript.includes(word)) {
+        playAlert(word);
+      }
+    });
+  };
+
+  function startListening() {
+    recognition.start();
+  }
+
+  function playAlert(word) {
+    const beep = document.getElementById("beep");
+    beep.currentTime = 0;
+    beep.play();
+    document.getElementById("alert").innerText =
+      `🚨 DETECTED: "${word}"`;
+  }
+</script>
+
+</body>
+</html>
