@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Live Word Listener</title>
+<style>
+  body { font-family: Arial; padding: 20px; }
+  button { font-size: 18px; padding: 12px; margin-bottom:10px; }
+  .alert { color: red; font-weight: bold; font-size: 22px; }
+  #log { max-height:200px; overflow-y:auto; border:1px solid #ccc; padding:5px; }
+</style>
+</head>
+<body>
+
+<h2>🎙️ Live Word Listener</h2>
+
+<p>Listening for: <strong id="words"></strong></p>
+
+<button id="start">Start Listening</button>
+
+<p id="status"></p>
+<p id="text"></p>
+<p id="alert" class="alert"></p>
+
+<h3>Detection Log:</h3>
+<div id="log"></div>
+
+<audio id="beep">
+  <source src="https://actions.google.com/sounds/v1/alarms/beep_short.ogg" type="audio/ogg">
+</audio>
+
+<script>
+  // ====== CONFIG ======
+  const words = [
+    "safety","pro bowl","pro bowler","roughing the passer","late hit",
+    "wind","windy","one handed","hunt","hunting","no good","tush push",
+    "what a catch","next gen stat","trade","traded","schedule","contract",
+    "turf","wild","fine","fined","fines","récord","superbowl","super bowl"
+  ];
+  document.getElementById("words").innerText = words.join(", ");
+  
+  let detectedLog = []; // store detected words
+
+  // ====== SETUP SPEECH RECOGNITION ======
+  const SpeechRecognition =
+    window.SpeechRecognition || window.webkitSpeechRecognition;
+
+  if (!SpeechRecognition) {
+    alert("Speech recognition not supported. Use Safari or Chrome.");
+  }
+
+  let recognition = new SpeechRecognition();
+  recognition.continuous = true;
+  recognition.interimResults = true;
+  recognition.lang = "en-US";
+
+  // ====== EVENT HANDLERS ======
+  document.getElementById("start").onclick = () => {
+    recognition.start();
+    document.getElementById("status").innerText = "Listening...";
+  };
+
+  recognition.onresult = (e) => {
+    const text = e.results[e.results.length-1][0].transcript.toLowerCase();
+    document.
