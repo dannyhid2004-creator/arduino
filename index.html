@@ -2,24 +2,26 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Live Word Listener</title>
+<title>Live Word Listener with Transcript</title>
 <style>
   body { font-family: Arial; padding: 20px; }
   button { font-size: 18px; padding: 12px; margin-bottom:10px; }
   .alert { color: red; font-weight: bold; font-size: 22px; }
   #log { max-height:200px; overflow-y:auto; border:1px solid #ccc; padding:5px; }
+  #transcript { border:1px solid #ccc; padding:10px; max-height:200px; overflow-y:auto; background:#f9f9f9; }
 </style>
 </head>
 <body>
 
-<h2>🎙️ Live Word Listener</h2>
+<h2>🎙️ Live Word Listener & Transcript</h2>
 
 <p>Listening for: <strong id="words"></strong></p>
-
 <button id="start">Start Listening</button>
 
 <p id="status"></p>
-<p id="text"></p>
+<h3>Live Transcript:</h3>
+<div id="transcript"></div>
+
 <p id="alert" class="alert"></p>
 
 <h3>Detection Log:</h3>
@@ -40,13 +42,14 @@
   document.getElementById("words").innerText = words.join(", ");
   
   let detectedLog = []; // store detected words
+  let fullTranscript = ""; // store full transcript
 
   // ====== SETUP SPEECH RECOGNITION ======
   const SpeechRecognition =
     window.SpeechRecognition || window.webkitSpeechRecognition;
 
   if (!SpeechRecognition) {
-    alert("Speech recognition not supported. Use Safari or Chrome.");
+    alert("Speech recognition not supported. Use Chrome.");
   }
 
   let recognition = new SpeechRecognition();
@@ -61,5 +64,53 @@
   };
 
   recognition.onresult = (e) => {
-    const text = e.results[e.results.length-1][0].transcript.toLowerCase();
-    document.
+    const result = e.results[e.results.length - 1];
+    const transcriptPart = result[0].transcript;
+    fullTranscript += transcriptPart + " ";
+    document.getElementById("transcript").innerText = fullTranscript;
+
+    // Check for trigger words
+    const textLower = transcriptPart.toLowerCase();
+    words.forEach(w => {
+      if (textLower.includes(w.toLowerCase())) {
+        playAlert(w);
+      }
+    });
+  };
+
+  recognition.onerror = (e) => {
+    document.getElementById("status").innerText = "Error: " + e.error;
+  };
+
+  recognition.onend = () => {
+    // Auto-restart for continuous listening
+    recognition.start();
+  };
+
+  // ====== FUNCTIONS ======
+  function playAlert(word) {
+    const beep = document.getElementById("beep");
+    beep.currentTime = 0;
+    beep.play();
+
+    document.getElementById("alert").innerText = `🚨 WORD DETECTED: ${word}`;
+
+    const time = new Date().toLocaleTimeString();
+    detectedLog.push({ word, time });
+    updateLog();
+  }
+
+  function updateLog() {
+    const logEl = document.getElementById("log");
+    logEl.innerHTML = "";
+    detectedLog.forEach(item => {
+      const p = document.createElement("p");
+      p.textContent = `${item.time}: ${item.word}`;
+      logEl.appendChild(p);
+    });
+    logEl.scrollTop = logEl.scrollHeight;
+  }
+</script>
+
+</body>
+</html>
