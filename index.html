@@ -2,23 +2,35 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Live Word Listener with Transcript</title>
+<title>Live Word Listener & Transcript</title>
 <style>
   body { font-family: Arial; padding: 20px; }
-  button { font-size: 18px; padding: 12px; margin-bottom:10px; }
+  button { font-size: 16px; padding: 8px; margin: 5px 0; }
+  input { font-size: 16px; padding: 6px; width: 300px; }
   .alert { color: red; font-weight: bold; font-size: 22px; }
-  #log { max-height:200px; overflow-y:auto; border:1px solid #ccc; padding:5px; }
-  #transcript { border:1px solid #ccc; padding:10px; max-height:200px; overflow-y:auto; background:#f9f9f9; }
+  #log, #transcript { 
+    border:1px solid #ccc; 
+    padding:10px; 
+    max-height:200px; 
+    overflow-y:auto; 
+    background:#f9f9f9; 
+  }
 </style>
 </head>
 <body>
 
-<h2>🎙️ Live Word Listener & Transcript</h2>
+<h2>🎙️ Live Word Listener</h2>
 
-<p>Listening for: <strong id="words"></strong></p>
+<h3>Add a word or phrase:</h3>
+<input id="newWord" placeholder="ex: roughing the passer">
+<button onclick="addWord()">Add Word</button>
+
+<p><strong>Current words:</strong></p>
+<p id="words"></p>
+
 <button id="start">Start Listening</button>
-
 <p id="status"></p>
+
 <h3>Live Transcript:</h3>
 <div id="transcript"></div>
 
@@ -28,23 +40,37 @@
 <div id="log"></div>
 
 <audio id="beep">
-  <source src="https://actions.google.com/sounds/v1/alarms/beep_short.ogg" type="audio/ogg">
+  <source src="https://actions.google.com/sounds/v1/alarms/beep_short.ogg">
 </audio>
 
 <script>
-  // ====== CONFIG ======
-  const words = [
+  // ===== WORD STORAGE =====
+  let words = [
     "safety","pro bowl","pro bowler","roughing the passer","late hit",
     "wind","windy","one handed","hunt","hunting","no good","tush push",
     "what a catch","next gen stat","trade","traded","schedule","contract",
-    "turf","wild","fine","fined","fines","récord","superbowl","super bowl"
+    "turf","wild","fine","fined","fines","record","superbowl","super bowl"
   ];
-  document.getElementById("words").innerText = words.join(", ");
-  
-  let detectedLog = []; // store detected words
-  let fullTranscript = ""; // store full transcript
 
-  // ====== SETUP SPEECH RECOGNITION ======
+  let detectedLog = [];
+  let fullTranscript = "";
+
+  function updateWordList() {
+    document.getElementById("words").innerText = words.join(", ");
+  }
+  updateWordList();
+
+  function addWord() {
+    const input = document.getElementById("newWord");
+    const word = input.value.trim().toLowerCase();
+    if (word && !words.includes(word)) {
+      words.push(word);
+      updateWordList();
+      input.value = "";
+    }
+  }
+
+  // ===== SPEECH RECOGNITION =====
   const SpeechRecognition =
     window.SpeechRecognition || window.webkitSpeechRecognition;
 
@@ -52,12 +78,11 @@
     alert("Speech recognition not supported. Use Chrome.");
   }
 
-  let recognition = new SpeechRecognition();
+  const recognition = new SpeechRecognition();
   recognition.continuous = true;
   recognition.interimResults = true;
   recognition.lang = "en-US";
 
-  // ====== EVENT HANDLERS ======
   document.getElementById("start").onclick = () => {
     recognition.start();
     document.getElementById("status").innerText = "Listening...";
@@ -65,35 +90,28 @@
 
   recognition.onresult = (e) => {
     const result = e.results[e.results.length - 1];
-    const transcriptPart = result[0].transcript;
-    fullTranscript += transcriptPart + " ";
+    const text = result[0].transcript;
+    const lower = text.toLowerCase();
+
+    fullTranscript += text + " ";
     document.getElementById("transcript").innerText = fullTranscript;
 
-    // Check for trigger words
-    const textLower = transcriptPart.toLowerCase();
     words.forEach(w => {
-      if (textLower.includes(w.toLowerCase())) {
-        playAlert(w);
+      if (lower.includes(w)) {
+        triggerAlert(w);
       }
     });
   };
 
-  recognition.onerror = (e) => {
-    document.getElementById("status").innerText = "Error: " + e.error;
-  };
+  recognition.onend = () => recognition.start();
 
-  recognition.onend = () => {
-    // Auto-restart for continuous listening
-    recognition.start();
-  };
-
-  // ====== FUNCTIONS ======
-  function playAlert(word) {
+  function triggerAlert(word) {
     const beep = document.getElementById("beep");
     beep.currentTime = 0;
     beep.play();
 
-    document.getElementById("alert").innerText = `🚨 WORD DETECTED: ${word}`;
+    document.getElementById("alert").innerText =
+      `🚨 WORD DETECTED: ${word}`;
 
     const time = new Date().toLocaleTimeString();
     detectedLog.push({ word, time });
@@ -101,14 +119,14 @@
   }
 
   function updateLog() {
-    const logEl = document.getElementById("log");
-    logEl.innerHTML = "";
+    const log = document.getElementById("log");
+    log.innerHTML = "";
     detectedLog.forEach(item => {
       const p = document.createElement("p");
       p.textContent = `${item.time}: ${item.word}`;
-      logEl.appendChild(p);
+      log.appendChild(p);
     });
-    logEl.scrollTop = logEl.scrollHeight;
+    log.scrollTop = log.scrollHeight;
   }
 </script>
 
