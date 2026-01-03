@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Live Word Listener & Transcript</title>
+<style>
+  body { font-family: Arial; padding: 20px; }
+  button { font-size: 16px; padding: 8px; margin: 5px 0; }
+  input { font-size: 16px; padding: 6px; width: 300px; }
+  .alert { color: red; font-weight: bold; font-size: 22px; }
+  #log, #transcript { 
+    border:1px solid #ccc; 
+    padding:10px; 
+    max-height:200px; 
+    overflow-y:auto; 
+    background:#f9f9f9; 
+  }
+</style>
+</head>
+<body>
+
+<h2>🎙️ Live Word Listener</h2>
+
+<h3>Add a word or phrase:</h3>
+<input id="newWord" placeholder="ex: roughing the passer">
+<button onclick="addWord()">Add Word</button>
+
+<p><strong>Current words:</strong></p>
+<p id="words"></p>
+
+<button id="start">Start Listening</button>
+<p id="status"></p>
+
+<h3>Live Transcript:</h3>
+<div id="transcript"></div>
+
+<p id="alert" class="alert"></p>
+
+<h3>Detection Log:</h3>
+<div id="log"></div>
+
+<audio id="beep">
+  <source src="https://actions.google.com/sounds/v1/alarms/beep_short.ogg">
+</audio>
+
+<script>
+  // ===== WORD STORAGE =====
+  let words = [
+    "safety","pro bowl","pro bowler","roughing the passer","late hit",
+    "wind","windy","one handed","hunt","hunting","no good","tush push",
+    "what a catch","next gen stat","trade","traded","schedule","contract",
+    "turf","wild","fine","fined","fines","record","superbowl","super bowl"
+  ];
+
+  let detectedLog = [];
+  let fullTranscript = "";
+
+  function updateWordList() {
+    document.getElementById("words").innerText = words.join(", ");
+  }
+  updateWordList();
+
+  function addWord() {
+    const input = document.getElementById("newWord");
+    const word = input.value.trim().toLowerCase();
+    if (word && !words.includes(word)) {
+      words.push(word);
+      updateWordList();
+      input.value = "";
+    }
+  }
+
+  // ===== SPEECH RECOGNITION =====
+  const SpeechRecognition =
+    window.SpeechRecognition || window.webkitSpeechRecognition;
+
+  if (!SpeechRecognition) {
+    alert("Speech recognition not supported. Use Chrome.");
+  }
+
+  const recognition = new SpeechRecognition();
+  recognition.continuous = true;
+  recognition.interimResults = true;
+  recognition.lang = "en-US";
+
+  document.getElementById("start").onclick = () => {
+    recognition.start();
+    document.getElementById("status").innerText = "Listening...";
+  };
+
+  recognition.onresult = (e) => {
+    const result = e.results[e.results.length - 1];
+    const text = result[0].transcript;
+    const lower = text.toLowerCase();
+
+    fullTranscript += text + " ";
+    document.getElementById("transcript").innerText = fullTranscript;
+
+    words.forEach(w => {
+      if (lower.includes(w)) {
+        triggerAlert(w);
+      }
+    });
+  };
+
+  recognition.onend = () => recognition.start();
+
+  function triggerAlert(word) {
+    const beep = document.getElementById("beep");
+    beep.currentTime = 0;
+    beep.play();
+
+    document.getElementById("alert").innerText =
+      `🚨 WORD DETECTED: ${word}`;
+
+    const time = new Date().toLocaleTimeString();
+    detectedLog.push({ word, time });
+    updateLog();
+  }
+
+  function updateLog() {
+    const log = document.getElementById("log");
+    log.innerHTML = "";
+    detectedLog.forEach(item => {
+      const p = document.createElement("p");
+      p.textContent = `${item.time}: ${item.word}`;
+      log.appendChild(p);
+    });
+    log.scrollTop = log.scrollHeight;
+  }
+</script>
+
+</body>
+</html>
